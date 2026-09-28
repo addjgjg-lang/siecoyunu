@@ -150,6 +150,15 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   }, [data?.me]);
 
   const meResult = data?.me ?? instant;
+  // YANLIŞ mesajı kısa süre görünüp kaybolur; takım hemen yeniden deneyebilir
+  const [showWrong, setShowWrong] = useState(true);
+  useEffect(() => {
+    setShowWrong(true);
+    if (!meResult || meResult.isCorrect) return undefined;
+    const id = setTimeout(() => setShowWrong(false), 1200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meResult?.isCorrect, meResult?.answer, questionIndex]);
 
   useEffect(() => {
     const id = setInterval(() => void ping({ data: { playerId } }), 15000);
