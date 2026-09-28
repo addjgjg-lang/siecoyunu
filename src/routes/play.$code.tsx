@@ -54,7 +54,7 @@ function Shell({ children, full }: { children: React.ReactNode; full?: boolean }
     // Yarışma alanı: kart yok, tam ekrana sabit — sayfa kaydırılmaz,
     // her şey tek ekrana sığar.
     return (
-      <main className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background px-4 pb-3 pt-3 sm:px-8">
+      <main className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-8">
         {children}
       </main>
     );
@@ -302,7 +302,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                 </button>
               </form>
             ) : (
-              <div className="mt-2 grid gap-2">
+              <div className="mt-3 grid gap-2.5">
                 {LETTERS.filter((letter) => q.options[letter]?.trim()).map((letter) => {
                   const chosen = meResult?.answer === letter || optimistic === letter;
                   return (
@@ -324,36 +324,34 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                           setSending(null);
                         }
                       }}
-                      className={`flex items-center gap-4 rounded-full border-2 px-4 py-3 text-left text-base font-semibold transition-colors disabled:opacity-60 ${
+                      className={`flex min-h-[3.5rem] w-full touch-manipulation select-none items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left text-base font-bold leading-tight transition-transform active:scale-[0.98] disabled:opacity-60 ${
                         chosen ? "border-foreground bg-foreground text-background" : "border-border bg-background text-foreground"
                       }`}
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-extrabold text-foreground">
                         {letter}
                       </span>
-                      {q.options[letter]}
+                      <span className="min-w-0 flex-1 break-words">{q.options[letter]}</span>
                     </button>
                   );
                 })}
               </div>
             )}
 
-            <div className="mt-2 h-[6.5rem] shrink-0 text-center" aria-live="polite">
+            <div
+              className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex justify-center px-4 text-center"
+              aria-live="polite"
+            >
               {meResult && (meResult.isCorrect || showWrong) && (
-                <>
+                <div className="w-full max-w-sm">
                   <p
-                    className={`rounded-2xl px-4 py-2.5 text-2xl font-extrabold text-panel ${
+                    className={`rounded-2xl px-4 py-2 text-xl font-extrabold text-panel shadow-[var(--shadow-panel)] ${
                       meResult.isCorrect ? "bg-team1" : "bg-destructive"
                     }`}
                   >
                     {meResult.isCorrect ? "DOĞRU! ✅" : "YANLIŞ! ❌"}
                   </p>
-                  {!meResult.isCorrect && !data.resolved && (
-                    <p className="mt-1 text-sm font-semibold text-muted-foreground">
-                      Doğru cevabı bulana kadar deneyebilirsin.
-                    </p>
-                  )}
-                </>
+                </div>
               )}
             </div>
             {error && (
