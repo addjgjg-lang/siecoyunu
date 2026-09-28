@@ -82,7 +82,15 @@ function HostScreen() {
 
   const q = data?.question ?? null;
   const status = data?.status;
-  const resolved = data?.resolved ?? false;
+  const firstCorrectAt = data?.firstCorrectAt ?? null;
+  const [timedOut, setTimedOut] = useState<string | null>(null);
+  useEffect(() => {
+    if (!firstCorrectAt) return undefined;
+    const wait = Math.max(0, 2000 - (Date.now() - Date.parse(firstCorrectAt)));
+    const id = setTimeout(() => setTimedOut(firstCorrectAt), wait);
+    return () => clearTimeout(id);
+  }, [firstCorrectAt]);
+  const resolved = (data?.resolved ?? false) || (!!firstCorrectAt && timedOut === firstCorrectAt);
   const qIndex = q?.index ?? 0;
   const elapsed = usePlayTimer(status);
   const countdown = useStartCountdown(status, q?.index);
@@ -99,7 +107,7 @@ function HostScreen() {
           advancedFor.current = null;
         })
         .then(() => refetch());
-    }, 600);
+    }, 0);
     return () => clearTimeout(id);
   }, [status, resolved, qIndex, code, control, refetch]);
   useEffect(() => {

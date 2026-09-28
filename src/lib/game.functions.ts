@@ -4,6 +4,7 @@ const QUESTION_COUNT = 10;
 const STEP = 10;
 // Bu süre içinde iki takım da doğru bilirse "aynı anda" sayılır: halat yerinde kalır, kimse puan almaz.
 const SAME_TIME_MS = 300;
+const WAIT_OTHER_MS = 2000;
 const FIRST_POINTS = 1;
 
 export type RoomStatus = "WAITING" | "READY" | "PLAYING" | "PAUSED" | "FINISHED";
@@ -37,6 +38,7 @@ export type RoomState = {
   me: { answer: string; isCorrect: boolean } | null;
   /** Bu soru çözüldü mü (doğru cevap verildi ya da herkes cevapladı) */
   resolved: boolean;
+  firstCorrectAt: string | null;
   /** Takım bazında toplam doğru cevap sayısı */
   scores: { 1: number; 2: number };
   /** Sıradaki sorunun fotoğrafı — önceden yüklemek için */
@@ -172,6 +174,7 @@ export const getRoomState = createServerFn({ method: "POST" })
     let answeredIds: string[] = [];
     let me: RoomState["me"] = null;
     let resolved = false;
+    let firstCorrectAt: string | null = null;
 
     // Oyuncular, tur soruları ve tüm cevaplar aynı anda sorgulanır — durum güncellemesi hızlanır
     const needsQuestion = roundIds.length > 0 && room.status !== "WAITING" && room.status !== "READY";
@@ -231,9 +234,13 @@ export const getRoomState = createServerFn({ method: "POST" })
       const corrects = roundAnswers
         .filter((a) => a.is_correct)
         .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+      // Her iki takım da cevap verdiyse (doğru/yanlış fark etmez) hemen geç;
+      // bir takım doğru bildiyse diğerine en fazla 2 saniye tanı.
+      const answeredTeams = new Set(roundAnswers.map((a) => teamOf.get(a.player_id)));
+      if (answeredTeams.has(1) && answeredTeams.has(2)) resolved = true;
       if (corrects.length) {
-        const teams = new Set(corrects.map((a) => teamOf.get(a.player_id)));
-        resolved = teams.has(1) && teams.has(2) || Date.now() - Date.parse(corrects[0]!.created_at) > SAME_TIME_MS;
+        firstCorrectAt = corrects[0]!.created_at;
+        if (Date.now() - Date.parse(corrects[0]!.created_at) >= WAIT_OTHER_MS) resolved = true;
       }
       const mine = allAnswers.find((a) => a.player_id === data.playerId && a.question_id === myQid);
       if (mine) me = { answer: mine.answer_text ?? "", isCorrect: mine.is_correct };
@@ -295,6 +302,7 @@ export const getRoomState = createServerFn({ method: "POST" })
       question,
       me,
       resolved,
+      firstCorrectAt,
       scores,
       nextImageUrl,
     };
@@ -348,7 +356,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const teamOfAns = (a: any) => teamMap.get(a.player_id);
     const firstCorrect = priorCorrect[0];
     const myTeamAlready = priorCorrect.some((a) => teamOfAns(a) === player.team);
-    const withinWindow = firstCorrect && now - Date.parse(firstCorrect.created_at) <= SAME_TIME_MS;
+    const withinWindow = firstCorrect && now - Date.parse(firstCorrect.created_at) <= WAIT_OTHER_MS;
     if (firstCorrect && (myTeamAlready || !withinWindow))
       throw new Error("Bu soru çözüldü, sıradaki soru geliyor");
 
