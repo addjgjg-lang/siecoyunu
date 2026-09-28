@@ -417,6 +417,34 @@ export const submitAnswer = createServerFn({ method: "POST" })
         else if (firstTeam === 2) rope += STEP;
       }
       await supabase.from("rooms").update({ rope_position: rope }).eq("id", room.id);
+
+      // İki takım da doğru bildiyse turu beklemeden hemen ilerlet —
+      // bir sonraki soru milisaniyeler içinde ekrana gelir.
+      const correctTeams = new Set(
+        ((allAns ?? []) as any[])
+          .filter((a: any) => a.is_correct && roundIds.includes(a.question_id))
+          .map((a: any) => teamMap.get(a.player_id)),
+      );
+      if (correctTeams.has(1) && correctTeams.has(2)) {
+        const nextIndex = round + 1;
+        const totalRounds = Math.floor(questionIds.length / 2);
+        if (nextIndex >= totalRounds) {
+          await supabase
+            .from("rooms")
+            .update({
+              status: "FINISHED",
+              winner: rope < 0 ? "TEAM1" : rope > 0 ? "TEAM2" : "TIE",
+            })
+            .eq("id", room.id)
+            .eq("current_question", round);
+        } else {
+          await supabase
+            .from("rooms")
+            .update({ current_question: nextIndex, status: "PLAYING" })
+            .eq("id", room.id)
+            .eq("current_question", round);
+        }
+      }
     }
 
     return { isCorrect };

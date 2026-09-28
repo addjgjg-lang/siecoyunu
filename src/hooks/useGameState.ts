@@ -10,7 +10,7 @@ export function useGameState(code: string, playerId?: string) {
   const query = useQuery<RoomState>({
     queryKey: ["room", code, playerId ?? "host"],
     queryFn: () => fetchState({ data: { code, playerId } }),
-    refetchInterval: 250,
+    refetchInterval: 120,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     placeholderData: (prev) => prev,
@@ -25,6 +25,9 @@ export function useGameState(code: string, playerId?: string) {
         void query.refetch();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "players" }, () => {
+        void query.refetch();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "answers" }, () => {
         void query.refetch();
       })
       .subscribe();

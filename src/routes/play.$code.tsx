@@ -150,6 +150,15 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   }, [data?.me]);
 
   const meResult = data?.me ?? instant;
+  // YANLIŞ mesajı kısa süre görünüp kaybolur; takım hemen yeniden deneyebilir
+  const [showWrong, setShowWrong] = useState(true);
+  useEffect(() => {
+    setShowWrong(true);
+    if (!meResult || meResult.isCorrect) return undefined;
+    const id = setTimeout(() => setShowWrong(false), 1200);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meResult?.isCorrect, meResult?.answer, questionIndex]);
 
   useEffect(() => {
     const id = setInterval(() => void ping({ data: { playerId } }), 15000);
@@ -330,7 +339,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             )}
 
             <div className="mt-2 h-[6.5rem] shrink-0 text-center" aria-live="polite">
-              {meResult && (
+              {meResult && (meResult.isCorrect || showWrong) && (
                 <>
                   <p
                     className={`rounded-2xl px-4 py-2.5 text-2xl font-extrabold text-panel ${
