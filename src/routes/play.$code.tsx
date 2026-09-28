@@ -339,7 +339,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             )}
 
             <div className="mt-2 h-[6.5rem] shrink-0 text-center" aria-live="polite">
-              {meResult && (
+              {meResult && (meResult.isCorrect || showWrong) && (
                 <>
                   <p
                     className={`rounded-2xl px-4 py-2.5 text-2xl font-extrabold text-panel ${
