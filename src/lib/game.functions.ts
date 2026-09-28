@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 const QUESTION_COUNT = 10;
 const STEP = 10;
 // Bu süre içinde iki takım da doğru bilirse "aynı anda" sayılır: halat yerinde kalır, kimse puan almaz.
-const SAME_TIME_MS = 300;
+const SAME_TIME_MS = 2000;
 const WAIT_OTHER_MS = 2000;
 const FIRST_POINTS = 1;
 
@@ -234,10 +234,10 @@ export const getRoomState = createServerFn({ method: "POST" })
       const corrects = roundAnswers
         .filter((a) => a.is_correct)
         .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-      // Her iki takım da cevap verdiyse (doğru/yanlış fark etmez) hemen geç;
-      // bir takım doğru bildiyse diğerine en fazla 2 saniye tanı.
+      // İki takım da cevap verdi ve en az biri doğruysa hemen geç; ikisi de yanlışsa
+      // biri doğru bilene kadar bekle. Bir takım doğru bildiyse diğerine en fazla 2 saniye tanı.
       const answeredTeams = new Set(roundAnswers.map((a) => teamOf.get(a.player_id)));
-      if (answeredTeams.has(1) && answeredTeams.has(2)) resolved = true;
+      if (answeredTeams.has(1) && answeredTeams.has(2) && corrects.length) resolved = true;
       if (corrects.length) {
         firstCorrectAt = corrects[0]!.created_at;
         if (Date.now() - Date.parse(corrects[0]!.created_at) >= WAIT_OTHER_MS) resolved = true;
