@@ -131,9 +131,13 @@ export const joinRoom = createServerFn({ method: "POST" })
 
     const { data: players, error } = await supabase
       .from("players")
-      .select("id, team")
+      .select("id, team, name")
       .eq("room_id", room.id);
     if (error) throw new Error(error.message);
+    // Aynı isimle geri dönen oyuncu kendi takımına kaldığı yerden devam eder
+    const norm = (v: string) => v.trim().toLocaleLowerCase("tr-TR");
+    const back = (players ?? []).find((p: any) => norm(p.name ?? "") === norm(data.name));
+    if (back) return { playerId: back.id, team: back.team as 1 | 2, code: room.room_code };
     if ((players ?? []).length >= 2) throw new Error("Bu yarışma dolu (en fazla 2 oyuncu)");
 
     const taken = new Set((players ?? []).map((p: any) => p.team));
@@ -324,8 +328,13 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const round = room.current_question as number;
 
     // Oyuncu ve odadaki tüm cevaplar aynı anda sorgulanır — cevap süresi kısalır
-    const [playerRes, answersRes] = await Promise.all([
+    const [playerRes, roomPlayersRes, roundQsRes, answersRes] = await Promise.all([
       supabase.from("players").select("id, team, room_id").eq("id", data.playerId).maybeSingle(),
+      supabase.from("players").select("id, team").eq("room_id", room.id),
+      supabase
+        .from("questions")
+        .select("id, correct_answer_text, option_a, option_b, option_c, option_d, question_type")
+        .in("id", [questionIds[round * 2], questionIds[round * 2 + 1]].filter(Boolean)),
       supabase
         .from("answers")
         .select("id, player_id, question_id, is_correct, created_at")
@@ -339,11 +348,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     if (!currentId) throw new Error("Aktif soru yok");
     const roundIds = [questionIds[round * 2], questionIds[round * 2 + 1]].filter(Boolean);
 
-    const { data: qRow } = await supabase
-      .from("questions")
-      .select("correct_answer_text, option_a, option_b, option_c, option_d, question_type")
-      .eq("id", currentId)
-      .maybeSingle();
+    const qRow = ((roundQsRes.data ?? []) as any[]).find((r) => r.id === currentId);
     if (!qRow) throw new Error("Soru bulunamadı");
     const q = { ...qRow, correct_answer: qRow.correct_answer_text ?? "" };
     const existing = ((answersRes.data ?? []) as any[]).filter((a) => roundIds.includes(a.question_id));
@@ -351,7 +356,7 @@ export const submitAnswer = createServerFn({ method: "POST" })
     const priorCorrect = existing
       .filter((a) => a.is_correct)
       .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-    const { data: roomPlayers } = await supabase.from("players").select("id, team").eq("room_id", room.id);
+    const roomPlayers = roomPlayersRes.data;
     const teamMap = new Map((roomPlayers ?? []).map((p: any) => [p.id, p.team]));
     const teamOfAns = (a: any) => teamMap.get(a.player_id);
     const firstCorrect = priorCorrect[0];
