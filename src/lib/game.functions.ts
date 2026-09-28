@@ -389,6 +389,8 @@ export const submitAnswer = createServerFn({ method: "POST" })
     // Halat her cevapta tüm cevap geçmişinden yeniden hesaplanır:
     // turu ilk doğru bilen takım halatı kendi yönüne çeker; diğer takım
     // aynı anda (SAME_TIME_MS içinde) bilirse o turda halat hiç kımıldamaz.
+    let ropeNow = (room.rope_position as number) ?? 0;
+    let allAnsNow: any[] | null = null;
     if (isCorrect) {
       const { data: allAns } = await supabase
         .from("answers")
@@ -417,37 +419,46 @@ export const submitAnswer = createServerFn({ method: "POST" })
         else if (firstTeam === 2) rope += STEP;
       }
       await supabase.from("rooms").update({ rope_position: rope }).eq("id", room.id);
+      ropeNow = rope;
+      allAnsNow = (allAns ?? []) as any[];
+    }
 
-      // İki takım da doğru bildiyse turu beklemeden hemen ilerlet —
-      // bir sonraki soru milisaniyeler içinde ekrana gelir.
-      const correctTeams = new Set(
-        ((allAns ?? []) as any[])
-          .filter((a: any) => a.is_correct && roundIds.includes(a.question_id))
-          .map((a: any) => teamMap.get(a.player_id)),
-      );
-      if (correctTeams.has(1) && correctTeams.has(2)) {
-        const nextIndex = round + 1;
-        const totalRounds = Math.floor(questionIds.length / 2);
-        if (nextIndex >= totalRounds) {
-          await supabase
-            .from("rooms")
-            .update({
-              status: "FINISHED",
-              winner: rope < 0 ? "TEAM1" : rope > 0 ? "TEAM2" : "TIE",
-            })
-            .eq("id", room.id)
-            .eq("current_question", round);
-        } else {
-          await supabase
-            .from("rooms")
-            .update({ current_question: nextIndex, status: "PLAYING" })
-            .eq("id", room.id)
-            .eq("current_question", round);
-        }
+    // Tur çözüldüyse (iki takım da cevapladı ve en az biri doğru) sunucu
+    // turu hemen ilerletir — öğretmen ekranını beklemeden yeni soru gelir.
+    if (!allAnsNow) {
+      const { data: fresh } = await supabase
+        .from("answers")
+        .select("player_id, question_id, is_correct, created_at")
+        .eq("room_id", room.id);
+      allAnsNow = (fresh ?? []) as any[];
+    }
+    const roundAns = allAnsNow.filter((a: any) => roundIds.includes(a.question_id));
+    const answeredTeams = new Set(roundAns.map((a: any) => teamMap.get(a.player_id)));
+    const correctTeams = new Set(roundAns.filter((a: any) => a.is_correct).map((a: any) => teamMap.get(a.player_id)));
+    let advanced = false;
+    if (answeredTeams.has(1) && answeredTeams.has(2) && correctTeams.size > 0) {
+      advanced = true;
+      const nextIndex = round + 1;
+      const totalRounds = Math.floor(questionIds.length / 2);
+      if (nextIndex >= totalRounds) {
+        await supabase
+          .from("rooms")
+          .update({
+            status: "FINISHED",
+            winner: ropeNow < 0 ? "TEAM1" : ropeNow > 0 ? "TEAM2" : "TIE",
+          })
+          .eq("id", room.id)
+          .eq("current_question", round);
+      } else {
+        await supabase
+          .from("rooms")
+          .update({ current_question: nextIndex, status: "PLAYING" })
+          .eq("id", room.id)
+          .eq("current_question", round);
       }
     }
 
-    return { isCorrect };
+    return { isCorrect, advanced };
   });
 
 export const controlRoom = createServerFn({ method: "POST" })
