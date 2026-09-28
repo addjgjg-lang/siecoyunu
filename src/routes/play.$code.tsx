@@ -252,7 +252,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             <p className="mt-3 shrink-0 text-xs font-semibold tracking-[0.2em] text-muted-foreground">
               SORU {q.index} / {q.total} • {q.category.toUpperCase()}
             </p>
-            <h2 className="mt-1 shrink-0 text-xl font-extrabold leading-snug text-foreground">
+            <h2 className="mt-1 shrink-0 text-lg font-extrabold leading-snug text-foreground sm:text-2xl">
               {q.question}
             </h2>
 
