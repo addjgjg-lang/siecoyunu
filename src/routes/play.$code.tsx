@@ -304,7 +304,11 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             ) : (
               <div className="mt-3 grid gap-2.5">
                 {LETTERS.filter((letter) => q.options[letter]?.trim()).map((letter) => {
-                  const chosen = meResult?.answer === letter || optimistic === letter;
+                  // Yanlış cevapta seçim anında kalkar; yalnızca doğru cevap işaretli kalır
+                  const chosen =
+                    sending === letter ||
+                    optimistic === letter ||
+                    (meResult?.isCorrect === true && meResult.answer === letter);
                   return (
                     <button
                       key={letter}
@@ -338,20 +342,17 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
               </div>
             )}
 
-            <div
-              className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex justify-center px-4 text-center"
-              aria-live="polite"
-            >
+            {/* DOĞRU/YANLIŞ bilgisi ekranın altında, şıkların hemen altında gösterilir.
+                Sabit yükseklikli alan: mesaj gelip gidince yerleşim oynamaz. */}
+            <div className="mt-2 flex h-12 items-start justify-center" aria-live="polite">
               {meResult && (meResult.isCorrect || showWrong) && (
-                <div className="w-full max-w-sm">
-                  <p
-                    className={`rounded-2xl px-4 py-2 text-xl font-extrabold text-panel shadow-[var(--shadow-panel)] ${
-                      meResult.isCorrect ? "bg-team1" : "bg-destructive"
-                    }`}
-                  >
-                    {meResult.isCorrect ? "DOĞRU! ✅" : "YANLIŞ! ❌"}
-                  </p>
-                </div>
+                <p
+                  className={`w-full max-w-sm rounded-2xl px-4 py-2 text-center text-xl font-extrabold text-panel shadow-[var(--shadow-panel)] ${
+                    meResult.isCorrect ? "bg-team1" : "bg-destructive"
+                  }`}
+                >
+                  {meResult.isCorrect ? "DOĞRU! ✅" : "YANLIŞ! ❌"}
+                </p>
               )}
             </div>
             {error && (
