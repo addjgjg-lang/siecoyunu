@@ -382,6 +382,48 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   );
 }
 
+// Soru yazısı Kahoot gibi: alan ne kadar olursa olsun yazı otomatik küçülüp
+// tamamen içine sığar — telefonda kaydırmaya hiç gerek kalmaz.
+function FitQuestion({ text, hasImage }: { text: string; hasImage: boolean }) {
+  const areaRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef<HTMLParagraphElement>(null);
+
+  useLayoutEffect(() => {
+    const fit = () => {
+      const area = areaRef.current;
+      const p = pRef.current;
+      if (!area || !p) return;
+      // Görsel varsa yazıya alanın ~%55'i, yoksa tamamı ayrılır
+      const maxH = Math.max(48, hasImage ? area.clientHeight * 0.55 : area.clientHeight);
+      let size = 30;
+      let guard = 0;
+      while (guard++ < 60) {
+        p.style.fontSize = `${size}px`;
+        if (p.scrollHeight <= maxH || size <= 11) break;
+        size -= 1;
+      }
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [text, hasImage]);
+
+  return (
+    <div
+      ref={areaRef}
+      className="mt-1 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden"
+    >
+      <p
+        ref={pRef}
+        className="w-full text-center font-extrabold leading-snug text-foreground"
+        style={{ fontSize: 30 }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
 function QuestionImage({ src }: { src: string }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
