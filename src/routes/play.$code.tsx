@@ -2,7 +2,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useGameState } from "@/hooks/useGameState";
 import { useStartCountdown } from "@/components/game/StartCountdown";
 import { WinnerBanner } from "@/components/game/WinnerBanner";
@@ -237,6 +237,11 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
 
   const canAnswer = data.status === "PLAYING" && !data.resolved && correctAnswer === null;
 
+  // Uzun şıklarda yazı otomatik küçülür ki her şey kaydırmasız tek ekrana sığsın
+  const longestOpt = Math.max(0, ...LETTERS.map((l) => q?.options[l]?.trim().length ?? 0));
+  const optTextCls = longestOpt > 90 ? "text-sm" : longestOpt > 45 ? "text-base" : "text-lg";
+  const optMinH = longestOpt > 90 ? "min-h-[3rem]" : "min-h-[3.5rem]";
+
   return (
     <Shell full>
       {countdown}
@@ -252,17 +257,16 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
 
       {q && (
         <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
-          {/* Soru + görsel: kalan alanı doldurur, gerektiğinde küçülür */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-1">
-            <p className="mt-3 shrink-0 text-xs font-semibold tracking-[0.2em] text-muted-foreground">
+          {/* Soru + görsel: kaydırma yok — yazı ne kadar uzun olursa olsun
+              otomatik küçülüp tek ekrana sığar (Kahoot gibi) */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-1">
+            <p className="mt-2 shrink-0 text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground sm:text-xs">
               SORU {q.index} / {q.total} • {q.category.toUpperCase()}
             </p>
-            <h2 className="mt-1 shrink-0 text-lg font-extrabold leading-snug text-foreground sm:text-2xl">
-              {q.question}
-            </h2>
+            <FitQuestion text={q.question} hasImage={!!q.imageUrl} />
 
             {q.imageUrl && (
-              <div className="mt-3 flex min-h-[7rem] w-full flex-1 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-panel shadow-[var(--shadow-panel)]">
+              <div className="mt-2 flex min-h-[3.5rem] w-full flex-[1.2] items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-panel shadow-[var(--shadow-panel)]">
                 <QuestionImage key={q.imageUrl} src={q.imageUrl} />
               </div>
             )}
@@ -333,7 +337,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                           setSending(null);
                         }
                       }}
-                      className={`flex min-h-[3.5rem] w-full touch-manipulation select-none items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left text-base font-bold leading-tight transition-transform active:scale-[0.98] disabled:opacity-60 ${
+                      className={`flex ${optMinH} w-full touch-manipulation select-none items-center gap-3 rounded-2xl border-2 px-3 py-2 text-left ${optTextCls} font-bold leading-tight transition-transform active:scale-[0.98] disabled:opacity-60 ${
                         chosen ? "border-foreground bg-foreground text-background" : "border-border bg-background text-foreground"
                       }`}
                     >
@@ -378,6 +382,48 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   );
 }
 
+// Soru yazısı Kahoot gibi: alan ne kadar olursa olsun yazı otomatik küçülüp
+// tamamen içine sığar — telefonda kaydırmaya hiç gerek kalmaz.
+function FitQuestion({ text, hasImage }: { text: string; hasImage: boolean }) {
+  const areaRef = useRef<HTMLDivElement>(null);
+  const pRef = useRef<HTMLParagraphElement>(null);
+
+  useLayoutEffect(() => {
+    const fit = () => {
+      const area = areaRef.current;
+      const p = pRef.current;
+      if (!area || !p) return;
+      // Görsel varsa yazıya alanın ~%55'i, yoksa tamamı ayrılır
+      const maxH = Math.max(48, hasImage ? area.clientHeight * 0.55 : area.clientHeight);
+      let size = 30;
+      let guard = 0;
+      while (guard++ < 60) {
+        p.style.fontSize = `${size}px`;
+        if (p.scrollHeight <= maxH || size <= 11) break;
+        size -= 1;
+      }
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [text, hasImage]);
+
+  return (
+    <div
+      ref={areaRef}
+      className="mt-1 flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden"
+    >
+      <p
+        ref={pRef}
+        className="w-full text-center font-extrabold leading-snug text-foreground"
+        style={{ fontSize: 30 }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
 function QuestionImage({ src }: { src: string }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -391,7 +437,7 @@ function QuestionImage({ src }: { src: string }) {
       loading="eager"
       decoding="async"
       className="max-h-full w-full object-contain"
-      style={{ maxHeight: "40vh" }}
+      style={{ maxHeight: "30vh" }}
       onError={() => {
         if (attempt < 3) setTimeout(() => setAttempt((a) => a + 1), 500);
         else setFailed(true);
