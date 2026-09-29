@@ -2,7 +2,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useGameState } from "@/hooks/useGameState";
 import { useStartCountdown } from "@/components/game/StartCountdown";
 import { WinnerBanner } from "@/components/game/WinnerBanner";
@@ -236,6 +236,11 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   }
 
   const canAnswer = data.status === "PLAYING" && !data.resolved && correctAnswer === null;
+
+  // Uzun şıklarda yazı otomatik küçülür ki her şey kaydırmasız tek ekrana sığsın
+  const longestOpt = Math.max(0, ...LETTERS.map((l) => q?.options[l]?.trim().length ?? 0));
+  const optTextCls = longestOpt > 90 ? "text-sm" : longestOpt > 45 ? "text-base" : "text-lg";
+  const optMinH = longestOpt > 90 ? "min-h-[3rem]" : "min-h-[3.5rem]";
 
   return (
     <Shell full>
