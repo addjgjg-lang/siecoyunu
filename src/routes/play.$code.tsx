@@ -257,17 +257,16 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
 
       {q && (
         <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col">
-          {/* Soru + görsel: kalan alanı doldurur, gerektiğinde küçülür */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-1">
-            <p className="mt-3 shrink-0 text-xs font-semibold tracking-[0.2em] text-muted-foreground">
+          {/* Soru + görsel: kaydırma yok — yazı ne kadar uzun olursa olsun
+              otomatik küçülüp tek ekrana sığar (Kahoot gibi) */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-1">
+            <p className="mt-2 shrink-0 text-[0.65rem] font-semibold tracking-[0.2em] text-muted-foreground sm:text-xs">
               SORU {q.index} / {q.total} • {q.category.toUpperCase()}
             </p>
-            <h2 className="mt-1 shrink-0 text-lg font-extrabold leading-snug text-foreground sm:text-2xl">
-              {q.question}
-            </h2>
+            <FitQuestion text={q.question} hasImage={!!q.imageUrl} />
 
             {q.imageUrl && (
-              <div className="mt-3 flex min-h-[7rem] w-full flex-1 items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-panel shadow-[var(--shadow-panel)]">
+              <div className="mt-2 flex min-h-[3.5rem] w-full flex-[1.2] items-center justify-center overflow-hidden rounded-2xl border-2 border-border bg-panel shadow-[var(--shadow-panel)]">
                 <QuestionImage key={q.imageUrl} src={q.imageUrl} />
               </div>
             )}
@@ -338,7 +337,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                           setSending(null);
                         }
                       }}
-                      className={`flex min-h-[3.5rem] w-full touch-manipulation select-none items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left text-base font-bold leading-tight transition-transform active:scale-[0.98] disabled:opacity-60 ${
+                      className={`flex ${optMinH} w-full touch-manipulation select-none items-center gap-3 rounded-2xl border-2 px-3 py-2 text-left ${optTextCls} font-bold leading-tight transition-transform active:scale-[0.98] disabled:opacity-60 ${
                         chosen ? "border-foreground bg-foreground text-background" : "border-border bg-background text-foreground"
                       }`}
                     >
