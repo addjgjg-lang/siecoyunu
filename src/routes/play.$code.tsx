@@ -437,7 +437,7 @@ function QuestionImage({ src }: { src: string }) {
       loading="eager"
       decoding="async"
       className="max-h-full w-full object-contain"
-      style={{ maxHeight: "40vh" }}
+      style={{ maxHeight: "30vh" }}
       onError={() => {
         if (attempt < 3) setTimeout(() => setAttempt((a) => a + 1), 500);
         else setFailed(true);
