@@ -319,8 +319,8 @@ function QuestionsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-studio-bg font-studio text-studio-ink">
-      <header className="border-b border-studio-line bg-studio-bg/95 px-4 py-4 backdrop-blur-xl sm:px-6 lg:px-8">
+    <main className="flex h-[100dvh] flex-col overflow-hidden bg-studio-bg font-studio text-studio-ink">
+      <header className="shrink-0 border-b border-studio-line bg-studio-bg/95 px-3 py-2 backdrop-blur-xl sm:px-6 sm:py-3 lg:px-8">
         <div className="mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
           <div className="flex min-w-0 items-center gap-3 sm:gap-5">
             <Button
@@ -329,7 +329,7 @@ function QuestionsPage() {
               aria-label="Soru setlerine dön"
               title="Soru setlerine dön"
               onClick={() => void navigate({ to: "/sorular" })}
-              className="h-11 w-11 shrink-0 rounded-full border border-studio-line text-studio-muted hover:bg-studio-elevated hover:text-studio-ink"
+              className="h-9 w-9 shrink-0 rounded-full border border-studio-line text-studio-muted hover:bg-studio-elevated hover:text-studio-ink sm:h-11 sm:w-11"
             >
               <ArrowLeft />
             </Button>
@@ -343,7 +343,7 @@ function QuestionsPage() {
                 }}
                 placeholder="Soru setinin başlığı"
                 aria-label="Soru seti başlığı"
-                className="mt-0.5 w-full min-w-0 truncate border-0 bg-transparent font-studio-display text-lg text-studio-ink outline-hidden placeholder:text-studio-muted sm:text-2xl"
+                className="mt-0.5 w-full min-w-0 truncate border-0 bg-transparent font-studio-display text-base text-studio-ink outline-hidden placeholder:text-studio-muted sm:text-2xl"
               />
             </div>
           </div>
@@ -355,7 +355,7 @@ function QuestionsPage() {
             <Button
               onClick={() => void startContest()}
               disabled={starting || total === 0}
-              className="hidden h-11 rounded-full bg-studio-elevated px-4 font-bold text-studio-ink hover:bg-studio-line sm:inline-flex"
+              className="hidden h-9 rounded-full bg-studio-elevated px-4 font-bold text-studio-ink hover:bg-studio-line sm:inline-flex sm:h-11"
             >
               <CirclePlay />
               {starting ? "Hazırlanıyor" : "Seti Sun"}
@@ -363,7 +363,7 @@ function QuestionsPage() {
             <Button
               onClick={() => void save()}
               disabled={saving}
-              className="h-11 rounded-full bg-studio-yellow px-4 font-bold text-studio-bg shadow-[0_4px_0_var(--studio-blue)] hover:bg-studio-yellow/90 active:translate-y-0.5 active:shadow-none sm:px-6"
+              className="h-9 rounded-full bg-studio-yellow px-4 font-bold text-studio-bg shadow-[0_4px_0_var(--studio-blue)] hover:bg-studio-yellow/90 active:translate-y-0.5 active:shadow-none sm:h-11 sm:px-6"
             >
               <Save />
               <span className="hidden sm:inline">{saving ? "Kaydediliyor" : "Kaydet"}</span>
@@ -372,11 +372,11 @@ function QuestionsPage() {
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1480px] gap-3 px-4 py-3 sm:px-6 lg:h-[calc(100dvh-77px)] lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-5 lg:px-8 lg:py-3">
-        <aside className="min-w-0 lg:h-full lg:min-h-0">
+      <div className="mx-auto flex w-full max-w-[1480px] min-h-0 flex-1 flex-col gap-2 px-3 py-2 sm:px-6 sm:py-3 lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-5 lg:px-8 lg:py-3">
+        <aside className="min-w-0 shrink-0 lg:h-full lg:min-h-0">
           <div className="overflow-hidden rounded-2xl border border-studio-line bg-studio-surface lg:flex lg:h-full lg:min-h-0 lg:flex-col">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-studio-line p-4">
-              <div className="min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-studio-line px-3 py-2 lg:p-4">
+              <div className="hidden min-w-0 sm:block">
                 <p className="font-studio-display text-base text-studio-ink">SORULAR</p>
                 <p className="text-xs font-medium text-studio-muted">Set içeriği</p>
               </div>
@@ -391,12 +391,12 @@ function QuestionsPage() {
               </Button>
             </div>
 
-            <div className="flex max-h-56 gap-2 overflow-x-auto p-3 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto">
+            <div className="flex gap-2 overflow-x-auto p-2 lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-y-auto lg:p-3">
               {list.isLoading && (
                 <p className="p-3 text-sm font-semibold text-studio-muted">Sorular yükleniyor...</p>
               )}
               {!list.isLoading && total === 0 && (
-                <div className="min-w-64 rounded-xl border border-dashed border-studio-line bg-studio-bg p-4 lg:min-w-0">
+                <div className="min-w-40 rounded-xl border border-dashed border-studio-line bg-studio-bg p-3 lg:min-w-0">
                   <FileQuestion className="mb-3 h-6 w-6 text-studio-yellow" />
                   <p className="text-sm font-semibold text-studio-ink">İlk sorunu hazırlamaya başla.</p>
                 </div>
@@ -408,18 +408,18 @@ function QuestionsPage() {
                     key={question.id}
                     variant="ghost"
                     onClick={() => pickQuestion(question.id)}
-                    className={`h-auto min-w-56 justify-start rounded-full border p-3 text-left lg:min-w-0 ${
+                    className={`h-auto min-w-40 justify-start rounded-full border p-2 text-left lg:min-w-0 lg:p-3 ${
                       active
                         ? "border-studio-yellow bg-studio-yellow/10 text-studio-ink"
                         : "border-transparent bg-studio-bg/50 text-studio-muted hover:border-studio-line hover:bg-studio-elevated hover:text-studio-ink"
                     }`}
                   >
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg text-xs font-bold ${active ? "bg-studio-yellow text-studio-bg" : "bg-studio-elevated text-studio-muted"}`}>
+                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold lg:h-8 lg:w-8 ${active ? "bg-studio-yellow text-studio-bg" : "bg-studio-elevated text-studio-muted"}`}>
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">{question.question || "Boş soru"}</span>
-                      <span className="mt-0.5 block text-xs text-studio-muted">
+                      <span className="block truncate text-xs font-semibold lg:text-sm">{question.question || "Boş soru"}</span>
+                      <span className="mt-0.5 hidden text-xs text-studio-muted lg:block">
                         {!question.question.trim() ? <span className="inline-flex items-center gap-1 text-destructive"><AlertCircle className="h-3.5 w-3.5" /> Taslak — soru metni eksik</span> : question.question_type === "fill" ? (question.option_a.trim() ? `Boşluk · ${question.option_a}` : <span className="inline-flex items-center gap-1 text-destructive"><AlertCircle className="h-3.5 w-3.5" /> Taslak — cevap eksik</span>) : question.question_type === "truefalse" ? `D/Y · ${question.correct_answer.toUpperCase() === "A" ? "Doğru" : "Yanlış"}` : question.option_a.trim() && question.option_b.trim() ? `Doğru yanıt: ${question.correct_answer.toUpperCase()}` : <span className="inline-flex items-center gap-1 text-destructive"><AlertCircle className="h-3.5 w-3.5" /> Taslak — seçenekler eksik</span>}
                       </span>
                     </span>
@@ -428,7 +428,7 @@ function QuestionsPage() {
               })}
             </div>
 
-            <div className="border-t border-studio-line p-3">
+            <div className="hidden border-t border-studio-line p-3 lg:block">
               <Button
                 onClick={newQuestion}
                 className={`h-11 w-full rounded-full font-bold ${draftMode ? "bg-studio-yellow text-studio-bg" : "bg-studio-elevated text-studio-ink hover:bg-studio-line"}`}
@@ -439,13 +439,13 @@ function QuestionsPage() {
           </div>
         </aside>
 
-        <section className="studio-enter min-w-0 rounded-2xl border border-studio-line bg-studio-surface lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-studio-line px-5 py-4 sm:px-7 lg:shrink-0 lg:py-3">
+        <section className="studio-enter flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-studio-line bg-studio-surface">
+          <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-studio-line px-4 py-2 sm:px-7 sm:py-3">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase text-studio-blue">
                 {draftMode ? "Yeni Soru" : `Soru ${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}`}
               </p>
-              <h1 className="mt-1 truncate font-studio-display text-xl text-studio-ink sm:text-2xl">
+              <h1 className="mt-1 truncate font-studio-display text-base text-studio-ink sm:text-2xl">
                 {draftMode ? "SORUNU TASARLA" : "SORUYU DÜZENLE"}
               </h1>
             </div>
@@ -477,7 +477,7 @@ function QuestionsPage() {
             </div>
           </div>
 
-          <div className="p-5 sm:p-7 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-5 lg:p-5">
             {(error || notice) && (
               <div
                 role="status"
