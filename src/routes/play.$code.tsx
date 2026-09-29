@@ -128,8 +128,12 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
-  // Sunucudan dönen sonucu beklemeden anında göstermek için yerel sonuç
-  const [instant, setInstant] = useState<{ answer: string; isCorrect: boolean } | null>(null);
+  // Her cevap gönderiminde benzersiz bir "flaş" üretilir; aynı yanlış şıkka
+  // üst üste basılsa bile YANLIŞ her seferinde yeniden görünüp kaybolur.
+  const [flash, setFlash] = useState<{ seq: number; answer: string; isCorrect: boolean } | null>(
+    null,
+  );
+  const [flashVisible, setFlashVisible] = useState(false);
   // Seçilen şıkkı sunucu yanıtı gelmeden hemen işaretle
   const [optimistic, setOptimistic] = useState<string | null>(null);
   const questionIndex = data?.question?.index;
@@ -137,28 +141,29 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
 
   useEffect(() => {
     setTyped("");
-    setInstant(null);
+    setFlash(null);
+    setFlashVisible(false);
     setOptimistic(null);
   }, [questionIndex]);
 
-  // Sunucu durumu yetişince yerel sonucu bırak
+  // Flaş kısa süre görünüp kendiliğinden kaybolur; işaret de onunla gider
   useEffect(() => {
-    if (data?.me) {
-      setInstant(null);
-      setOptimistic(null);
-    }
-  }, [data?.me]);
-
-  const meResult = data?.me ?? instant;
-  // YANLIŞ mesajı kısa süre görünüp kaybolur; takım hemen yeniden deneyebilir
-  const [showWrong, setShowWrong] = useState(true);
-  useEffect(() => {
-    setShowWrong(true);
-    if (!meResult || meResult.isCorrect) return undefined;
-    const id = setTimeout(() => setShowWrong(false), 1200);
+    if (!flash) return undefined;
+    setFlashVisible(true);
+    const id = setTimeout(() => {
+      setFlashVisible(false);
+      if (!flash.isCorrect) setOptimistic(null);
+    }, 900);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meResult?.isCorrect, meResult?.answer, questionIndex]);
+  }, [flash]);
+
+  // Doğru cevap kalıcı olarak kilitli kalır (sunucudan da gelse)
+  const correctAnswer =
+    data?.me?.isCorrect === true
+      ? data.me.answer
+      : flash?.isCorrect === true
+        ? flash.answer
+        : null;
 
   useEffect(() => {
     const id = setInterval(() => void ping({ data: { playerId } }), 15000);
@@ -230,7 +235,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
     );
   }
 
-  const canAnswer = data.status === "PLAYING" && !data.resolved && meResult?.isCorrect !== true;
+  const canAnswer = data.status === "PLAYING" && !data.resolved && correctAnswer === null;
 
   return (
     <Shell full>
@@ -275,7 +280,8 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                   setError(null);
                   try {
                     const res = await answer({ data: { code, playerId, answer: typed } });
-                    setInstant({ answer: typed, isCorrect: res.isCorrect });
+                    setFlash({ seq: Date.now(), answer: typed, isCorrect: res.isCorrect });
+                    if (!res.isCorrect) setTyped("");
                     void refetch();
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "Gönderilemedi");
@@ -304,11 +310,10 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             ) : (
               <div className="mt-3 grid gap-2.5">
                 {LETTERS.filter((letter) => q.options[letter]?.trim()).map((letter) => {
-                  // Yanlış cevapta seçim anında kalkar; yalnızca doğru cevap işaretli kalır
+                  // Yanlış cevapta seçim flaşla birlikte hemen kalkar;
+                  // yalnızca doğru cevap işaretli kalır
                   const chosen =
-                    sending === letter ||
-                    optimistic === letter ||
-                    (meResult?.isCorrect === true && meResult.answer === letter);
+                    sending === letter || optimistic === letter || correctAnswer === letter;
                   return (
                     <button
                       key={letter}
@@ -319,7 +324,7 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
                         setError(null);
                         try {
                           const res = await answer({ data: { code, playerId, answer: letter } });
-                          setInstant({ answer: letter, isCorrect: res.isCorrect });
+                          setFlash({ seq: Date.now(), answer: letter, isCorrect: res.isCorrect });
                           void refetch();
                         } catch (e) {
                           setOptimistic(null);
@@ -343,16 +348,24 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
             )}
 
             {/* DOĞRU/YANLIŞ bilgisi ekranın altında, şıkların hemen altında gösterilir.
-                Sabit yükseklikli alan: mesaj gelip gidince yerleşim oynamaz. */}
+                Sabit yükseklikli alan: mesaj gelip gidince yerleşim oynamaz.
+                Her cevapta (aynı yanlış şıkka tekrar basılsa bile) yeniden görünür. */}
             <div className="mt-2 flex h-12 items-start justify-center" aria-live="polite">
-              {meResult && (meResult.isCorrect || showWrong) && (
-                <p
-                  className={`w-full max-w-sm rounded-2xl px-4 py-2 text-center text-xl font-extrabold text-panel shadow-[var(--shadow-panel)] ${
-                    meResult.isCorrect ? "bg-team1" : "bg-destructive"
-                  }`}
-                >
-                  {meResult.isCorrect ? "DOĞRU! ✅" : "YANLIŞ! ❌"}
+              {correctAnswer !== null ? (
+                <p className="w-full max-w-sm rounded-2xl bg-team1 px-4 py-2 text-center text-xl font-extrabold text-panel shadow-[var(--shadow-panel)]">
+                  DOĞRU! ✅
                 </p>
+              ) : (
+                flash &&
+                !flash.isCorrect &&
+                flashVisible && (
+                  <p
+                    key={flash.seq}
+                    className="w-full max-w-sm rounded-2xl bg-destructive px-4 py-2 text-center text-xl font-extrabold text-panel shadow-[var(--shadow-panel)]"
+                  >
+                    YANLIŞ! ❌
+                  </p>
+                )
               )}
             </div>
             {error && (
