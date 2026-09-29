@@ -128,8 +128,12 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
   const [sending, setSending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
-  // Sunucudan dönen sonucu beklemeden anında göstermek için yerel sonuç
-  const [instant, setInstant] = useState<{ answer: string; isCorrect: boolean } | null>(null);
+  // Her cevap gönderiminde benzersiz bir "flaş" üretilir; aynı yanlış şıkka
+  // üst üste basılsa bile YANLIŞ her seferinde yeniden görünüp kaybolur.
+  const [flash, setFlash] = useState<{ seq: number; answer: string; isCorrect: boolean } | null>(
+    null,
+  );
+  const [flashVisible, setFlashVisible] = useState(false);
   // Seçilen şıkkı sunucu yanıtı gelmeden hemen işaretle
   const [optimistic, setOptimistic] = useState<string | null>(null);
   const questionIndex = data?.question?.index;
@@ -137,28 +141,29 @@ function GameView({ code, playerId }: { code: string; playerId: string }) {
 
   useEffect(() => {
     setTyped("");
-    setInstant(null);
+    setFlash(null);
+    setFlashVisible(false);
     setOptimistic(null);
   }, [questionIndex]);
 
-  // Sunucu durumu yetişince yerel sonucu bırak
+  // Flaş kısa süre görünüp kendiliğinden kaybolur; işaret de onunla gider
   useEffect(() => {
-    if (data?.me) {
-      setInstant(null);
-      setOptimistic(null);
-    }
-  }, [data?.me]);
-
-  const meResult = data?.me ?? instant;
-  // YANLIŞ mesajı kısa süre görünüp kaybolur; takım hemen yeniden deneyebilir
-  const [showWrong, setShowWrong] = useState(true);
-  useEffect(() => {
-    setShowWrong(true);
-    if (!meResult || meResult.isCorrect) return undefined;
-    const id = setTimeout(() => setShowWrong(false), 1200);
+    if (!flash) return undefined;
+    setFlashVisible(true);
+    const id = setTimeout(() => {
+      setFlashVisible(false);
+      if (!flash.isCorrect) setOptimistic(null);
+    }, 900);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meResult?.isCorrect, meResult?.answer, questionIndex]);
+  }, [flash]);
+
+  // Doğru cevap kalıcı olarak kilitli kalır (sunucudan da gelse)
+  const correctAnswer =
+    data?.me?.isCorrect === true
+      ? data.me.answer
+      : flash?.isCorrect === true
+        ? flash.answer
+        : null;
 
   useEffect(() => {
     const id = setInterval(() => void ping({ data: { playerId } }), 15000);
